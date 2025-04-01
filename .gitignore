@@ -1,2 +1,3 @@
 *.zip
 pothole-dataset/
+__pycache__/

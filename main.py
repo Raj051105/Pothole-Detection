@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     # Save the trained model with an incrementing name
     model_filename = get_next_model_filename()
-    model.export(format='pt')  # Save in PyTorch format
+    model.export(format='onnx')  # Save in PyTorch format
     os.rename("runs/detect/train/weights/best.pt", model_filename)  # Rename the best model
 
     print(f"Model saved as: {model_filename}")
