@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Videos - Pothole Detector</title>
+    <link rel="stylesheet" href="../static/styles.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Pothole Detector</h1>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="videos.html" class="active">My Videos</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="videos-container">
+        <h2>My Uploaded Videos</h2>
+        
+        <div class="videos-list">
+            <!-- In a real app, this would be populated from your backend -->
+            <div class="video-card">
+                <div class="video-thumbnail">
+                    <video src="/api/placeholder/320/180" controls></video>
+                </div>
+                <div class="video-info">
+                    <h3>Main Street Survey</h3>
+                    <p>Location: Downtown Main Street</p>
+                    <p>Uploaded: April 1, 2025</p>
+                    <p>Status: <span class="status-complete">Complete</span></p>
+                    <p>Potholes detected: 7</p>
+                    <a href="#" class="btn-secondary">View on Map</a>
+                </div>
+            </div>
+            
+            <div class="video-card">
+                <div class="video-thumbnail">
+                    <video src="/api/placeholder/320/180" controls></video>
+                </div>
+                <div class="video-info">
+                    <h3>Highway 101 North</h3>
+                    <p>Location: Highway 101, Mile 24-30</p>
+                    <p>Uploaded: March 28, 2025</p>
+                    <p>Status: <span class="status-complete">Complete</span></p>
+                    <p>Potholes detected: 12</p>
+                    <a href="#" class="btn-secondary">View on Map</a>
+                </div>
+            </div>
+            
+            <div class="video-card">
+                <div class="video-thumbnail">
+                    <video src="/api/placeholder/320/180" controls></video>
+                </div>
+                <div class="video-info">
+                    <h3>Residential Area Survey</h3>
+                    <p>Location: Oak Hills Neighborhood</p>
+                    <p>Uploaded: March 25, 2025</p>
+                    <p>Status: <span class="status-processing">Processing</span></p>
+                    <a href="#" class="btn-secondary disabled">View on Map</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Pothole Detector</p>
+        </div>
+    </footer>
+</body>
+</html>

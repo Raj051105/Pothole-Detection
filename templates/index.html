@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pothole Detector</title>
+    <link rel="stylesheet" href="../static/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/leaflet.css" />
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Pothole Detector</h1>
+            <nav>
+                <ul>
+                    <li><a href="index.html" class="active">Home</a></li>
+                    <li><a href="videos.html">My Videos</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="main-content">
+            <section class="map-container">
+                <div id="map"></div>
+            </section>
+            
+            <section class="upload-container">
+                <h2>Upload Video</h2>
+                <p>Upload a video to detect potholes in your area</p>
+                
+                <form id="upload-form">
+                    <div class="form-group">
+                        <label for="video-title">Title</label>
+                        <input type="text" id="video-title" name="title" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="video-location">Location Description</label>
+                        <input type="text" id="video-location" name="location" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="video-file">Select Video</label>
+                        <input type="file" id="video-file" name="video" accept="video/*" required>
+                    </div>
+                    
+                    <div class="file-preview">
+                        <video id="video-preview" controls style="display: none;"></video>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary">Upload & Detect Potholes</button>
+                </form>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Pothole Detector</p>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/leaflet.js"></script>
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([51.505, -0.09], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Video file preview
+        document.getElementById('video-file').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const videoPreview = document.getElementById('video-preview');
+                videoPreview.src = URL.createObjectURL(file);
+                videoPreview.style.display = 'block';
+            }
+        });
+
+        // Form submission
+        document.getElementById('upload-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Here you would normally send the data to your backend
+            const formData = new FormData(this);
+            
+            // For demo purposes, we'll just show an alert
+            alert('Video uploaded! Processing will begin shortly.');
+            
+            // In a real app, you would send the data to your backend:
+            // fetch('/api/upload', {
+            //     method: 'POST',
+            //     body: formData
+            // })
+            // .then(response => response.json())
+            // .then(data => {
+            //     console.log('Success:', data);
+            // })
+            // .catch(error => {
+            //     console.error('Error:', error);
+            // });
+            
+            // Add a sample marker to the map (in real app, this would come from your backend)
+            setTimeout(() => {
+                L.marker([51.505, -0.09]).addTo(map)
+                    .bindPopup('Pothole detected!').openPopup();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
