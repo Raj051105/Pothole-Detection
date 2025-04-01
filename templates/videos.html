@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Videos - Pothole Detector</title>
-    <link rel="stylesheet" href="../static/styles.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
     <header>
@@ -12,58 +12,38 @@
             <h1>Pothole Detector</h1>
             <nav>
                 <ul>
-                    <li><a href="index.html">Home</a></li>
-                    <li><a href="videos.html" class="active">My Videos</a></li>
+                    <li><a href="{{ url_for('index') }}">Home</a></li>
+                    <li><a href="{{ url_for('videos_page') }}" class="active">My Videos</a></li>
                 </ul>
             </nav>
         </div>
     </header>
 
-    <main class="videos-container">
+    <main class="container">
         <h2>My Uploaded Videos</h2>
         
-        <div class="videos-list">
-            <!-- In a real app, this would be populated from your backend -->
-            <div class="video-card">
-                <div class="video-thumbnail">
-                    <video src="/api/placeholder/320/180" controls></video>
+        <div class="videos-list" id="videos-container">
+            {% if videos %}
+                {% for video in videos %}
+                <div class="video-card">
+                    <div class="video-thumbnail">
+                        <video src="{{ url_for('serve_video', filename=video['path']) }}" controls></video>
+                    </div>
+                    <div class="video-info">
+                        <h3>{{ video['title'] }}</h3>
+                        <p>Location: {{ video['location'] }}</p>
+                        <p>Uploaded: {{ video['uploaded'] }}</p>
+                        <p>Status: <span class="status-{{ video['status']|lower }}">{{ video['status'] }}</span></p>
+                        {% if video['status'] == 'Complete' %}
+                            <p>Potholes detected: {{ video['potholes'] }}</p>
+                        {% endif %}
+                        <a href="{{ url_for('index') }}?video={{ video['id'] }}" class="btn-secondary {% if video['status'] != 'Complete' %}disabled{% endif %}">View on Map</a>
+                    </div>
                 </div>
-                <div class="video-info">
-                    <h3>Main Street Survey</h3>
-                    <p>Location: Downtown Main Street</p>
-                    <p>Uploaded: April 1, 2025</p>
-                    <p>Status: <span class="status-complete">Complete</span></p>
-                    <p>Potholes detected: 7</p>
-                    <a href="#" class="btn-secondary">View on Map</a>
-                </div>
-            </div>
-            
-            <div class="video-card">
-                <div class="video-thumbnail">
-                    <video src="/api/placeholder/320/180" controls></video>
-                </div>
-                <div class="video-info">
-                    <h3>Highway 101 North</h3>
-                    <p>Location: Highway 101, Mile 24-30</p>
-                    <p>Uploaded: March 28, 2025</p>
-                    <p>Status: <span class="status-complete">Complete</span></p>
-                    <p>Potholes detected: 12</p>
-                    <a href="#" class="btn-secondary">View on Map</a>
-                </div>
-            </div>
-            
-            <div class="video-card">
-                <div class="video-thumbnail">
-                    <video src="/api/placeholder/320/180" controls></video>
-                </div>
-                <div class="video-info">
-                    <h3>Residential Area Survey</h3>
-                    <p>Location: Oak Hills Neighborhood</p>
-                    <p>Uploaded: March 25, 2025</p>
-                    <p>Status: <span class="status-processing">Processing</span></p>
-                    <a href="#" class="btn-secondary disabled">View on Map</a>
-                </div>
-            </div>
+                {% endfor %}
+            {% else %}
+                <p>No videos uploaded yet. <a href="{{ url_for('index') }}">Upload your first video</a>.</p>
+            {% endif %}
         </div>
     </main>
 
