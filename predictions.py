@@ -1,12 +1,12 @@
 from ultralytics import YOLO
 import os
 
-model = YOLO(r"C:\\Ml projects\\Pothole\\Pothole-Detection\\best.pt")  
+model = YOLO("best.pt")  
 
 results = model([
-    r"C:\\Ml projects\\Pothole\\Pothole-Detection\\image1.jpeg",
-    r"C:\\Ml projects\\Pothole\\Pothole-Detection\\image2.jpeg",
-    r"C:\\Ml projects\\Pothole\\Pothole-Detection\\images3.jpeg"
+    "image1.jpeg",
+    "image2.jpeg",
+    "images3.jpeg"
     ]) 
 
 
@@ -17,5 +17,5 @@ for id,result in enumerate(results):
     probs = result.probs  
     obb = result.obb  
     # result.show()  
-    output = os.path.join("Pothole-Detection\output",f"result{id+1}.jpg")  
+    output = os.path.join("output",f"result{id+1}.jpg")  
     result.save(output)
