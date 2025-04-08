@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/leaflet.css" />
 </head>
+
 <body>
     <header>
         <div class="container">
@@ -25,31 +27,32 @@
             <section class="map-container">
                 <div id="map"></div>
             </section>
-            
+
             <section class="upload-container">
                 <h2>Upload Video</h2>
                 <p>Upload a video to detect potholes in your area</p>
-                
-                <form id="upload-form" action="{{ url_for('upload_video') }}" method="post" enctype="multipart/form-data">
+
+                <form id="upload-form" action="{{ url_for('upload_video') }}" method="post"
+                    enctype="multipart/form-data">
                     <div class="form-group">
                         <label for="video-title">Title</label>
                         <input type="text" id="video-title" name="title" required>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="video-location">Location Description</label>
                         <input type="text" id="video-location" name="location" required>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="video-file">Select Video</label>
                         <input type="file" id="video-file" name="video" accept="video/*" required>
                     </div>
-                    
+
                     <div class="file-preview">
                         <video id="video-preview" controls style="display: none;"></video>
                     </div>
-                    
+
                     <button type="submit" class="btn-primary">Upload & Detect Potholes</button>
                 </form>
             </section>
@@ -71,7 +74,7 @@
         }).addTo(map);
 
         // Video file preview
-        document.getElementById('video-file').addEventListener('change', function(event) {
+        document.getElementById('video-file').addEventListener('change', function (event) {
             const file = event.target.files[0];
             if (file) {
                 const videoPreview = document.getElementById('video-preview');
@@ -80,54 +83,56 @@
             }
         });
 
-        // Load existing potholes on the map
-        fetch('/api/potholes')
+        fetch('/api/detections')
             .then(response => response.json())
-            .then(potholes => {
-                potholes.forEach(pothole => {
-                    L.marker([pothole.lat, pothole.lng]).addTo(map)
-                        .bindPopup(`<strong>${pothole.title}</strong><br>Location: ${pothole.location}`);
+            .then(detections => {
+                detections.forEach(d => {
+                    d.potholes.forEach(p => {
+                        L.marker([p.lat, p.lng]).addTo(map)
+                            .bindPopup(`<strong>${d.title}</strong><br>Location: ${d.location}`);
+                    });
                 });
-                
-                // If we have potholes, zoom the map to fit them
-                if (potholes.length > 0) {
-                    const latlngs = potholes.map(p => [p.lat, p.lng]);
-                    map.fitBounds(L.latLngBounds(latlngs));
+
+                // Zoom the map to fit all potholes
+                const allCoords = detections.flatMap(d => d.potholes.map(p => [p.lat, p.lng]));
+                if (allCoords.length > 0) {
+                    map.fitBounds(L.latLngBounds(allCoords));
                 }
             })
-            .catch(error => console.error('Error loading potholes:', error));
+            .catch(error => console.error('Error loading detections:', error));
+
 
         // Form submission
-        document.getElementById('upload-form').addEventListener('submit', function(e) {
+        document.getElementById('upload-form').addEventListener('submit', function (e) {
             e.preventDefault();
-            
+
             const formData = new FormData(this);
-            
+
             // Show loading indication
             const submitBtn = this.querySelector('button[type="submit"]');
             const originalText = submitBtn.textContent;
             submitBtn.textContent = 'Uploading...';
             submitBtn.disabled = true;
-            
+
             fetch('/upload', {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Success:', data);
-                alert('Video uploaded and processing started! Check "My Videos" page for status.');
-                submitBtn.textContent = originalText;
-                submitBtn.disabled = false;
-                this.reset();
-                document.getElementById('video-preview').style.display = 'none';
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error uploading video. Please try again.');
-                submitBtn.textContent = originalText;
-                submitBtn.disabled = false;
-            });
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Success:', data);
+                    alert('Video uploaded and processing started! Check "My Videos" page for status.');
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
+                    this.reset();
+                    document.getElementById('video-preview').style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error uploading video. Please try again.');
+                    submitBtn.textContent = originalText;
+                    submitBtn.disabled = false;
+                });
         });
 
         // Check for video parameter to focus on specific video's potholes
@@ -144,7 +149,7 @@
                                 map.removeLayer(layer);
                             }
                         });
-                        
+
                         // Add markers for this video only
                         const latlngs = [];
                         video.coordinates.forEach(coord => {
@@ -152,7 +157,7 @@
                                 .bindPopup(`<strong>${video.title}</strong><br>Location: ${video.location}`);
                             latlngs.push([coord.lat, coord.lng]);
                         });
-                        
+
                         // Zoom to fit these markers
                         map.fitBounds(L.latLngBounds(latlngs));
                     }
@@ -161,4 +166,5 @@
         }
     </script>
 </body>
+
 </html>

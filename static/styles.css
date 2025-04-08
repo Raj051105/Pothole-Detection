@@ -248,6 +248,7 @@ main {
 
 /* Footer */
 footer {
+    text-align: center;
     background-color: #1a4f85;
     color: white;
     padding: 2rem 0;
