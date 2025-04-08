@@ -3,6 +3,7 @@ import json
 from flask import Flask, request, jsonify, render_template, send_from_directory, url_for
 from werkzeug.utils import secure_filename
 from datetime import datetime
+import imghdr  # For image validation
 
 app = Flask(__name__)
 
@@ -11,20 +12,30 @@ UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)  # Ensure folder exists
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
-# File to store video metadata
+# File to store metadata
 DATA_FOLDER = "data"
 os.makedirs(DATA_FOLDER, exist_ok=True)
 VIDEOS_FILE = os.path.join(DATA_FOLDER, "videos.json")
+PHOTOS_FILE = os.path.join(DATA_FOLDER, "photos.json")
 
 # Initialize videos.json if it doesn't exist
 if not os.path.exists(VIDEOS_FILE):
     with open(VIDEOS_FILE, 'w') as f:
         json.dump([], f)
 
-ALLOWED_EXTENSIONS = {"mp4", "avi", "mov", "mkv"}
+# Initialize photos.json if it doesn't exist
+if not os.path.exists(PHOTOS_FILE):
+    with open(PHOTOS_FILE, 'w') as f:
+        json.dump([], f)
 
-def allowed_file(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+ALLOWED_VIDEO_EXTENSIONS = {"mp4", "avi", "mov", "mkv"}
+ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "heic", "webp"}
+
+def allowed_video(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_VIDEO_EXTENSIONS
+
+def allowed_image(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
 
 def get_videos():
     try:
@@ -37,8 +48,19 @@ def save_videos(videos):
     with open(VIDEOS_FILE, 'w') as f:
         json.dump(videos, f, indent=4)
 
+def get_photos():
+    try:
+        with open(PHOTOS_FILE, 'r') as f:
+            return json.load(f)
+    except:
+        return []
+
+def save_photos(photos):
+    with open(PHOTOS_FILE, 'w') as f:
+        json.dump(photos, f, indent=4)
+
 @app.route('/uploads/<path:filename>')
-def serve_video(filename):
+def serve_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route("/")
@@ -49,6 +71,11 @@ def index():
 def videos_page():
     videos = get_videos()
     return render_template("videos.html", videos=videos)
+
+@app.route("/photos.html")
+def photos_page():
+    photos = get_photos()
+    return render_template("photos.html", photos=photos)
 
 @app.route("/upload", methods=["POST"])
 def upload_video():
@@ -62,7 +89,7 @@ def upload_video():
     if file.filename == "":
         return jsonify({"error": "No selected file"}), 400
 
-    if file and allowed_file(file.filename):
+    if file and allowed_video(file.filename):
         # Create a unique filename
         filename = secure_filename(file.filename)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -100,6 +127,57 @@ def upload_video():
 
     return jsonify({"error": "Invalid file type"}), 400
 
+@app.route("/upload-photo", methods=["POST"])
+def upload_photo():
+    if "photo" not in request.files:
+        return jsonify({"error": "No photo file found"}), 400
+
+    file = request.files["photo"]
+    title = request.form.get("title", "Untitled Photo")
+    description = request.form.get("description", "")
+    
+    # Get coordinates if available
+    latitude = request.form.get("latitude")
+    longitude = request.form.get("longitude")
+    
+    if file.filename == "":
+        return jsonify({"error": "No selected file"}), 400
+
+    if file and allowed_image(file.filename):
+        # Create a unique filename
+        filename = secure_filename(file.filename)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        unique_filename = f"{timestamp}_{filename}"
+        
+        # Create a date-based folder
+        today = datetime.today().strftime("%Y-%m-%d")
+        save_path = os.path.join(app.config["UPLOAD_FOLDER"], today)
+        os.makedirs(save_path, exist_ok=True)
+        
+        file_path = os.path.join(save_path, unique_filename)
+        relative_path = os.path.join(today, unique_filename)
+        file.save(file_path)
+        
+        # Store photo metadata
+        photos = get_photos()
+        new_photo = {
+            "id": len(photos) + 1,
+            "title": title,
+            "description": description,
+            "path": relative_path,
+            "url": url_for('serve_file', filename=relative_path),
+            "thumbnail_url": url_for('serve_file', filename=relative_path),  # Same as url for now
+            "upload_date": datetime.now().isoformat(),
+            "latitude": float(latitude) if latitude else None,
+            "longitude": float(longitude) if longitude else None
+        }
+        photos.append(new_photo)
+        save_photos(photos)
+        
+        return jsonify({"message": "Upload successful", "photo_id": new_photo["id"]}), 200
+
+    return jsonify({"error": "Invalid file type"}), 400
+
 @app.route("/api/videos", methods=["GET"])
 def get_all_videos():
     return jsonify(get_videos())
@@ -111,6 +189,35 @@ def get_video(video_id):
         if video["id"] == video_id:
             return jsonify(video)
     return jsonify({"error": "Video not found"}), 404
+
+@app.route("/api/photos", methods=["GET"])
+def get_all_photos():
+    return jsonify(get_photos())
+
+@app.route("/api/photos/<int:photo_id>", methods=["GET"])
+def get_photo(photo_id):
+    photos = get_photos()
+    for photo in photos:
+        if photo["id"] == photo_id:
+            return jsonify(photo)
+    return jsonify({"error": "Photo not found"}), 404
+
+@app.route("/api/photos/<int:photo_id>", methods=["DELETE"])
+def delete_photo(photo_id):
+    photos = get_photos()
+    for i, photo in enumerate(photos):
+        if photo["id"] == photo_id:
+            # Delete the file if it exists
+            file_path = os.path.join(app.config["UPLOAD_FOLDER"], photo["path"])
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            
+            # Remove from list
+            deleted = photos.pop(i)
+            save_photos(photos)
+            return jsonify({"message": "Photo deleted", "photo": deleted})
+    
+    return jsonify({"error": "Photo not found"}), 404
 
 @app.route("/api/potholes", methods=["GET"])
 def get_all_potholes():
@@ -127,6 +234,18 @@ def get_all_potholes():
                     "title": video["title"],
                     "location": video["location"]
                 })
+    
+    # Also include pothole markers from photos with GPS data
+    photos = get_photos()
+    for photo in photos:
+        if photo["latitude"] and photo["longitude"]:
+            all_potholes.append({
+                "lat": photo["latitude"],
+                "lng": photo["longitude"],
+                "photo_id": photo["id"],
+                "title": photo["title"],
+                "location": photo.get("description", "Photo location")
+            })
     
     return jsonify(all_potholes)
 

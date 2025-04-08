@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Photos - Pothole Detector</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/leaflet.css" />
+    <style>
+        /* Additional styles specific to the photos page */
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .photo-card {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        
+        .photo-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .photo-thumbnail {
+            width: 100%;
+            height: 180px;
+            background-color: #ddd;
+        }
+        
+        .photo-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .photo-info {
+            padding: 1.5rem;
+        }
+        
+        .photo-info h3 {
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+        }
+        
+        .photo-info p {
+            margin-bottom: 0.5rem;
+            color: #7f8c8d;
+        }
+        
+        .photo-actions {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            background-color: #f8f9fa;
+        }
+        
+        .btn-delete {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-delete:hover {
+            background-color: #c0392b;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .map-container {
+            height: 400px;
+            background-color: #eee;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .upload-container {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .metadata-display {
+            background-color: #f8f9fa;
+            padding: 1.2rem;
+            border-radius: 8px;
+            margin-top: 1.5rem;
+            border: 1px solid #e9ecef;
+        }
+        
+        .metadata-display h3 {
+            margin-top: 0;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+        
+        #photo-preview {
+            max-width: 100%;
+            max-height: 300px;
+            display: block;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Pothole Detector</h1>
+            <nav>
+                <ul>
+                    <li><a href="{{ url_for('index') }}">Home</a></li>
+                    <li><a href="{{ url_for('videos_page') }}">My Videos</a></li>
+                    <li><a href="{{ url_for('photos_page') }}" class="active">My Photos</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="main-content">
+            <section class="map-container">
+                <div id="map"></div>
+            </section>
+            
+            <section class="upload-container">
+                <h2>Upload Photo</h2>
+                <p>Upload a photo with GPS data to mark pothole locations</p>
+                
+                <form id="photo-upload-form" action="{{ url_for('upload_photo') }}" method="post" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="photo-title">Title</label>
+                        <input type="text" id="photo-title" name="title" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="photo-description">Description</label>
+                        <textarea id="photo-description" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="photo-file">Select Photo</label>
+                        <input type="file" id="photo-file" name="photo" accept="image/*" required>
+                    </div>
+                    
+                    <div class="file-preview">
+                        <img id="photo-preview" class="hidden">
+                    </div>
+                    
+                    <div class="metadata-display" id="exif-data">
+                        <h3>Photo Metadata</h3>
+                        <p id="no-metadata-msg">Upload a photo to view its metadata</p>
+                        <div id="metadata-content" class="hidden">
+                            <p><strong>GPS Location:</strong> <span id="gps-coords">Not available</span></p>
+                            <p><strong>Date Taken:</strong> <span id="date-taken">Not available</span></p>
+                            <p><strong>Device:</strong> <span id="device-info">Not available</span></p>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary">Upload Photo</button>
+                </form>
+            </section>
+        </div>
+        
+        <section>
+            <h2>My Pothole Photos</h2>
+            <div class="photo-grid" id="photos-container">
+                {% if photos %}
+                    {% for photo in photos %}
+                        <div class="photo-card">
+                            <div class="photo-thumbnail">
+                                <img src="{{ url_for('serve_file', filename=photo.path) }}" alt="{{ photo.title }}">
+                            </div>
+                            <div class="photo-info">
+                                <h3>{{ photo.title }}</h3>
+                                <p>{{ photo.description or '' }}</p>
+                                <p><small>Uploaded on {{ photo.upload_date }}</small></p>
+                            </div>
+                            <div class="photo-actions">
+                                <button class="btn-secondary view-on-map" data-id="{{ photo.id }}" data-lat="{{ photo.latitude }}" data-lng="{{ photo.longitude }}">View on Map</button>
+                                <button class="btn-delete" data-id="{{ photo.id }}">Delete</button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No photos uploaded yet. Upload your first photo using the form above.</p>
+                {% endif %}
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Pothole Detector</p>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([51.505, -0.09], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        // For storing the extracted coordinates
+        let photoCoordinates = null;
+
+        // Photo file preview and EXIF data extraction
+        document.getElementById('photo-file').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Show photo preview
+            const photoPreview = document.getElementById('photo-preview');
+            photoPreview.src = URL.createObjectURL(file);
+            photoPreview.classList.remove('hidden');
+            
+            // Extract EXIF data
+            EXIF.getData(file, function() {
+                const metadataContent = document.getElementById('metadata-content');
+                const noMetadataMsg = document.getElementById('no-metadata-msg');
+                
+                // Check if GPS data exists
+                if (EXIF.getTag(this, "GPSLatitude") && EXIF.getTag(this, "GPSLongitude")) {
+                    // Convert GPS coordinates
+                    const latDegrees = EXIF.getTag(this, "GPSLatitude");
+                    const latRef = EXIF.getTag(this, "GPSLatitudeRef") || "N";
+                    const lonDegrees = EXIF.getTag(this, "GPSLongitude");
+                    const lonRef = EXIF.getTag(this, "GPSLongitudeRef") || "E";
+                    
+                    const latDecimal = convertDMSToDD(latDegrees[0], latDegrees[1], latDegrees[2], latRef);
+                    const lonDecimal = convertDMSToDD(lonDegrees[0], lonDegrees[1], lonDegrees[2], lonRef);
+                    
+                    photoCoordinates = { lat: latDecimal, lng: lonDecimal };
+                    
+                    // Display coordinates
+                    document.getElementById('gps-coords').textContent = `${latDecimal.toFixed(6)}, ${lonDecimal.toFixed(6)}`;
+                    
+                    // Add marker to map
+                    clearMarkers();
+                    
+                    const marker = L.marker([latDecimal, lonDecimal]).addTo(map)
+                        .bindPopup("New photo location");
+                    map.setView([latDecimal, lonDecimal], 15);
+                } else {
+                    document.getElementById('gps-coords').textContent = "Not available";
+                    photoCoordinates = null;
+                }
+                
+                // Display date if available
+                const dateTaken = EXIF.getTag(this, "DateTimeOriginal");
+                if (dateTaken) {
+                    document.getElementById('date-taken').textContent = dateTaken;
+                } else {
+                    document.getElementById('date-taken').textContent = "Not available";
+                }
+                
+                // Display device info if available
+                const make = EXIF.getTag(this, "Make");
+                const model = EXIF.getTag(this, "Model");
+                if (make && model) {
+                    document.getElementById('device-info').textContent = `${make} ${model}`;
+                } else {
+                    document.getElementById('device-info').textContent = "Not available";
+                }
+                
+                // Show metadata section
+                noMetadataMsg.style.display = 'none';
+                metadataContent.classList.remove('hidden');
+            });
+        });
+        
+        // Convert GPS coordinates from degrees, minutes, seconds to decimal degrees
+        function convertDMSToDD(degrees, minutes, seconds, direction) {
+            let dd = degrees + minutes/60 + seconds/3600;
+            if (direction === "S" || direction === "W") {
+                dd = dd * -1;
+            }
+            return dd;
+        }
+        
+        // Clear all markers from map
+        function clearMarkers() {
+            map.eachLayer(layer => {
+                if (layer instanceof L.Marker) {
+                    map.removeLayer(layer);
+                }
+            });
+        }
+
+        // Form submission
+        document.getElementById('photo-upload-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            // Add coordinates to form data if available
+            if (photoCoordinates) {
+                formData.append('latitude', photoCoordinates.lat);
+                formData.append('longitude', photoCoordinates.lng);
+            }
+            
+            // Show loading indication
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Uploading...';
+            submitBtn.disabled = true;
+            
+            fetch('/upload-photo', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                alert('Photo uploaded successfully!');
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                this.reset();
+                document.getElementById('photo-preview').classList.add('hidden');
+                document.getElementById('metadata-content').classList.add('hidden');
+                document.getElementById('no-metadata-msg').style.display = 'block';
+                
+                // Reload the page to show the new photo
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error uploading photo. Please try again.');
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            });
+        });
+
+        // Load all potholes on the map
+        function loadPotholes() {
+            fetch('/api/potholes')
+                .then(response => response.json())
+                .then(potholes => {
+                    clearMarkers();
+                    
+                    const latlngs = [];
+                    potholes.forEach(pothole => {
+                        const marker = L.marker([pothole.lat, pothole.lng]).addTo(map)
+                            .bindPopup(`<strong>${pothole.title}</strong><br>${pothole.location}`);
+                        latlngs.push([pothole.lat, pothole.lng]);
+                    });
+                    
+                    // Zoom map to fit all markers if we have any
+                    if (latlngs.length > 0) {
+                        map.fitBounds(L.latLngBounds(latlngs));
+                    }
+                })
+                .catch(error => console.error('Error loading potholes:', error));
+        }
+
+        // Delete a photo
+        function deletePhoto(photoId) {
+            if (!confirm('Are you sure you want to delete this photo?')) return;
+            
+            fetch(`/api/photos/${photoId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Photo deleted successfully');
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error deleting photo');
+            });
+        }
+        
+        // Add event listeners after DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load all potholes on initial page load
+            loadPotholes();
+            
+            // Add event listeners for "View on Map" buttons
+            document.querySelectorAll('.view-on-map').forEach(button => {
+                button.addEventListener('click', function() {
+                    const lat = parseFloat(this.getAttribute('data-lat'));
+                    const lng = parseFloat(this.getAttribute('data-lng'));
+                    
+                    if (lat && lng) {
+                        // Clear existing markers
+                        clearMarkers();
+                        
+                        // Add this photo's marker
+                        const marker = L.marker([lat, lng]).addTo(map)
+                            .bindPopup(`<strong>${this.closest('.photo-card').querySelector('h3').textContent}</strong>`).openPopup();
+                        
+                        // Center map on this location
+                        map.setView([lat, lng], 17);
+                    } else {
+                        alert('No location data available for this photo');
+                    }
+                });
+            });
+            
+            // Add event listeners for delete buttons
+            document.querySelectorAll('.btn-delete').forEach(button => {
+                button.addEventListener('click', function() {
+                    const photoId = this.getAttribute('data-id');
+                    deletePhoto(photoId);
+                });
+            });
+        });
+        
+        // Check for photo parameter to focus on specific photo
+        const urlParams = new URLSearchParams(window.location.search);
+        const photoId = urlParams.get('photo');
+        if (photoId) {
+            fetch(`/api/photos/${photoId}`)
+                .then(response => response.json())
+                .then(photo => {
+                    if (photo.latitude && photo.longitude) {
+                        clearMarkers();
+                        
+                        // Add marker for this photo
+                        const marker = L.marker([photo.latitude, photo.longitude]).addTo(map)
+                            .bindPopup(`<strong>${photo.title}</strong><br>${photo.description || ''}`).openPopup();
+                        
+                        // Zoom to this photo's location
+                        map.setView([photo.latitude, photo.longitude], 17);
+                    }
+                })
+                .catch(error => console.error('Error loading photo data:', error));
+        }
+    </script>
+</body>
+</html>
