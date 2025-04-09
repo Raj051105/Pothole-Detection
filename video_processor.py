@@ -1,6 +1,4 @@
-import os
 import cv2
-import torch
 import json
 import random
 from datetime import datetime
@@ -13,8 +11,8 @@ OUTPUT_DIR = Path("detected_frames")
 N = 5  # Process every nth frame
 CONF_THRESHOLD = 0.3
 MOCK_LOCATION_RANGE = {
-    "lat": (51.48, 51.52),
-    "lng": (-0.11, -0.07)
+    "lat": (45.48, 57.52),
+    "lng": (-10.11, 15.07)
 }
 
 # === Load YOLO Model ===
@@ -89,7 +87,7 @@ for date_folder in UPLOADS_DIR.iterdir():
         video_id += 1
 
 # === Save Summary as JSON ===
-with open("detections.json", "w") as f:
+with open("data//detections.json", "w") as f:
     json.dump(results_summary, f, indent=4)
 
-print("✅ Done! JSON saved to detections.json and frames saved in 'detected_frames'")
+print("Done! JSON saved to detections.json and frames saved in 'detected_frames'")

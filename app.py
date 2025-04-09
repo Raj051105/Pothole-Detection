@@ -67,12 +67,12 @@ def serve_file(filename):
 def index():
     return render_template("index.html")
 
-@app.route("/videos.html")
+@app.route("/videos")
 def videos_page():
     videos = get_videos()
     return render_template("videos.html", videos=videos)
 
-@app.route("/photos.html")
+@app.route("/photos")
 def photos_page():
     photos = get_photos()
     return render_template("photos.html", photos=photos)
@@ -248,6 +248,14 @@ def get_all_potholes():
             })
     
     return jsonify(all_potholes)
+
+@app.route("/api/potholes")
+def api_potholes():
+    with open("data\detections.json") as f:
+        print(f)
+        data = json.load(f)
+        print(data)
+    return jsonify(data)
 
 # Function to simulate processing a video and finding potholes
 def simulate_processing(video_id):
