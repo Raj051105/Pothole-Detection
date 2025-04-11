@@ -4,7 +4,7 @@
 The Pothole Detection and Reporting System is an AI-powered application designed to detect potholes and automatically notify the relevant authorities. The system allows users to report potholes to the Public Works Department or private road maintenance organizations. The detected potholes are also pinned on Google Maps for better visibility and tracking.
 
 ## Features
-- **AI-Based Pothole Detection**: Uses machine learning models to identify potholes from real-time camera feeds or uploaded images.
+- **AI-Based Pothole Detection**: Uses machine learning models to identify potholes from real-time camera feeds or uploaded images
 - **Automated Notifications**: Sends a message to the concerned department (Public Works or private sector) when a pothole is detected.
 - **Google Maps Integration**: Pins detected potholes on Google Maps for tracking and public awareness.
 - **User-Friendly Interface**: Allows users to report potholes manually if needed.
