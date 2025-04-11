@@ -8,7 +8,7 @@
 body {
     margin-bottom: 10vh;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    line-height: 1.6;
+    line-height: 1.7;
     color: #333;
     background-color: #f4f6f8;
 }
@@ -86,8 +86,8 @@ main {
 
 /* Map */
 .map-container {
-    flex: 2;
-    height: 500px;
+    flex: 10;
+    height: 520px;
     background-color: #ddd;
     border-radius: 8px;
     overflow: hidden;
@@ -101,7 +101,7 @@ main {
 
 /* Upload Form */
 .upload-container {
-    flex: 1;
+    flex: 3;
     background-color: white;
     padding: 1.5rem;
     border-radius: 8px;
