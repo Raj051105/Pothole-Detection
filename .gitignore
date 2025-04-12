@@ -1,3 +1,4 @@
 *.zip
 pothole-dataset/
 __pycache__/
+detected_frames/
