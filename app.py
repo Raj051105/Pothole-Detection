@@ -67,12 +67,12 @@ def serve_file(filename):
 def index():
     return render_template("index.html")
 
-@app.route("/videos.html")
+@app.route("/videos")
 def videos_page():
     videos = get_videos()
     return render_template("videos.html", videos=videos)
 
-@app.route("/photos.html")
+@app.route("/photos")
 def photos_page():
     photos = get_photos()
     return render_template("photos.html", photos=photos)
