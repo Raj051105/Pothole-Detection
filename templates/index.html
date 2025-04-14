@@ -87,7 +87,7 @@
             }
         });
 
-        fetch('/api/detections')
+        fetch('/api/potholes')
             .then(response => response.json())
             .then(detections => {
                 detections.forEach(d => {
@@ -107,67 +107,77 @@
 
 
         // Form submission
-        document.getElementById('upload-form').addEventListener('submit', function (e) {
+        document.addEventListener("DOMContentLoaded", () => {
+    const videoForm = document.getElementById("upload-form");
+    const photoForm = document.getElementById("photo-upload-form");
+
+    if (videoForm) {
+        videoForm.addEventListener("submit", async (e) => {
             e.preventDefault();
+            const formData = new FormData(videoForm);
+            const response = await fetch("/upload", {
+                method: "POST",
+                body: formData,
+            });
 
-            const formData = new FormData(this);
-
-            // Show loading indication
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.textContent;
-            submitBtn.textContent = 'Uploading...';
-            submitBtn.disabled = true;
-
-            fetch('/upload', {
-                method: 'POST',
-                body: formData
-            })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Success:', data);
-                    alert('Video uploaded and processing started! Check "My Videos" page for status.');
-                    submitBtn.textContent = originalText;
-                    submitBtn.disabled = false;
-                    this.reset();
-                    document.getElementById('video-preview').style.display = 'none';
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error uploading video. Please try again.');
-                    submitBtn.textContent = originalText;
-                    submitBtn.disabled = false;
-                });
+            const result = await response.json();
+            if (response.ok) {
+                alert("Video uploaded successfully! Processing will continue in the background.");
+                videoForm.reset();
+            } else {
+                alert(`Error: ${result.error}`);
+            }
         });
+    }
 
-        // Check for video parameter to focus on specific video's potholes
-        const urlParams = new URLSearchParams(window.location.search);
-        const videoId = urlParams.get('video');
-        if (videoId) {
-            fetch(`/api/videos/${videoId}`)
-                .then(response => response.json())
-                .then(video => {
-                    if (video.coordinates && video.coordinates.length > 0) {
-                        // Clear existing markers
-                        map.eachLayer(layer => {
-                            if (layer instanceof L.Marker) {
-                                map.removeLayer(layer);
-                            }
-                        });
+    if (photoForm) {
+        photoForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const formData = new FormData(photoForm);
+            const response = await fetch("/upload-photo", {
+                method: "POST",
+                body: formData,
+            });
 
-                        // Add markers for this video only
-                        const latlngs = [];
-                        video.coordinates.forEach(coord => {
-                            L.marker([coord.lat, coord.lng]).addTo(map)
-                                .bindPopup(`<strong>${video.title}</strong><br>Location: ${video.location}`);
-                            latlngs.push([coord.lat, coord.lng]);
-                        });
+            const result = await response.json();
+            if (response.ok) {
+                alert("Photo uploaded successfully!");
+                photoForm.reset();
+            } else {
+                alert(`Error: ${result.error}`);
+            }
+        });
+    }
 
-                        // Zoom to fit these markers
-                        map.fitBounds(L.latLngBounds(latlngs));
-                    }
-                })
-                .catch(error => console.error('Error loading video data:', error));
+    // Load detections from API
+    async function loadDetections() {
+        try {
+            const response = await fetch("/api/potholes");
+            const data = await response.json();
+
+            // Check if the response structure is as expected
+            if (Array.isArray(data)) {
+                // Flatten the coordinates from all detections
+                const potholes = data.flatMap(d => Array.isArray(d.coordinates) ? d.coordinates : []);
+                
+                // If potholes exist, plot them on the map
+                if (potholes.length > 0) {
+                    potholes.forEach(pothole => {
+                        L.marker([pothole.lat, pothole.lng]).addTo(map);
+                    });
+                } else {
+                    alert("No potholes detected!");
+                }
+            } else {
+                console.error("Invalid data structure received");
+            }
+        } catch (error) {
+            console.error("Error loading detections:", error);
         }
+    }
+
+    loadDetections();
+});
     </script>
 </body>
 
