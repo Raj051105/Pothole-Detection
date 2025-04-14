@@ -341,7 +341,8 @@ textarea {
     padding: 6px 12px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 1rem;
+    font-weight: 500;
     transition: background-color 0.3s;
 }
 
