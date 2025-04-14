@@ -65,50 +65,81 @@
         const map = L.map('map', {
             zoomControl: false  // We'll reposition this
         }).setView([51.505, -0.09], 13);
-        
+    
         // Reposition zoom control to right bottom
         L.control.zoom({
             position: 'bottomright'
         }).addTo(map);
-        
+    
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
-
-        // Load all potholes on the map
-        fetch('/api/detections')
+    
+        // Load all potholes on the map from /api/potholes
+        fetch('/api/potholes')
             .then(response => response.json())
             .then(detections => {
                 detections.forEach(d => {
-                    d.potholes.forEach(p => {
+                    // Add video preview and pothole markers
+                    const videoThumbnail = document.createElement('div');
+                    videoThumbnail.classList.add('video-thumbnail');
+                    
+                    // Video element with the correct path
+                    const videoElement = document.createElement('video');
+                    videoElement.src = `/${d.path}`; // Ensure the path is relative to the server root
+                    videoElement.controls = true;
+                    videoThumbnail.appendChild(videoElement);
+    
+                    // Create video info div
+                    const videoInfo = document.createElement('div');
+                    videoInfo.classList.add('video-info');
+                    videoInfo.innerHTML = `
+                        <h3>${d.title}</h3>
+                        <p>Location: ${d.location}</p>
+                        <p>Uploaded: ${d.uploaded}</p>
+                        <p>Status: <span class="status-${d.status.toLowerCase()}">${d.status}</span></p>
+                        <p>Potholes detected: ${d.potholes}</p>
+                    `;
+    
+                    // Append the video preview and info
+                    const videoCard = document.createElement('div');
+                    videoCard.classList.add('video-card');
+                    videoCard.appendChild(videoThumbnail);
+                    videoCard.appendChild(videoInfo);
+    
+                    document.getElementById('videos-container').appendChild(videoCard);
+    
+                    // Add pothole markers to the map
+                    d.coordinates.forEach(p => {
                         L.marker([p.lat, p.lng]).addTo(map)
                             .bindPopup(`<strong>${d.title}</strong><br>Location: ${d.location}`);
                     });
                 });
-
+    
                 // Zoom the map to fit all potholes
-                const allCoords = detections.flatMap(d => d.potholes.map(p => [p.lat, p.lng]));
+                const allCoords = detections.flatMap(d => d.coordinates.map(p => [p.lat, p.lng]));
                 if (allCoords.length > 0) {
                     map.fitBounds(L.latLngBounds(allCoords));
                 }
             })
             .catch(error => console.error('Error loading detections:', error));
-
+    
         // Check for video parameter to focus on specific video's potholes
         const urlParams = new URLSearchParams(window.location.search);
         const videoId = urlParams.get('video');
         if (videoId) {
-            fetch(`/api/videos/${videoId}`)
+            fetch(`/api/potholes`)
                 .then(response => response.json())
-                .then(video => {
-                    if (video.coordinates && video.coordinates.length > 0) {
+                .then(detections => {
+                    const video = detections.find(v => v.id == videoId);
+                    if (video && video.coordinates && video.coordinates.length > 0) {
                         // Clear existing markers
                         map.eachLayer(layer => {
                             if (layer instanceof L.Marker) {
                                 map.removeLayer(layer);
                             }
                         });
-
+    
                         // Add markers for this video only
                         const latlngs = [];
                         video.coordinates.forEach(coord => {
@@ -116,7 +147,7 @@
                                 .bindPopup(`<strong>${video.title}</strong><br>Location: ${video.location}`);
                             latlngs.push([coord.lat, coord.lng]);
                         });
-
+    
                         // Zoom to fit these markers
                         map.fitBounds(L.latLngBounds(latlngs));
                     }
@@ -124,5 +155,6 @@
                 .catch(error => console.error('Error loading video data:', error));
         }
     </script>
+      
 </body>
 </html>
