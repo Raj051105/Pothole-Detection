@@ -42,12 +42,9 @@
                             {% if video['status'] == 'Complete' %}
                                 <p>Potholes detected: {{ video['potholes'] }}</p>
                             {% endif %}
-                            <a href="{{ url_for('index') }}?video={{ video['id'] }}" class="btn-secondary {% if video['status'] != 'Complete' %}disabled{% endif %}">View on Map</a>
                         </div>
                     </div>
                     {% endfor %}
-                {% else %}
-                    <p class="no-content-message">No videos uploaded yet. <a href="{{ url_for('index') }}">Upload your first video</a>.</p>
                 {% endif %}
             </div>
         </div>
@@ -123,37 +120,6 @@
                 }
             })
             .catch(error => console.error('Error loading detections:', error));
-    
-        // Check for video parameter to focus on specific video's potholes
-        const urlParams = new URLSearchParams(window.location.search);
-        const videoId = urlParams.get('video');
-        if (videoId) {
-            fetch(`/api/potholes`)
-                .then(response => response.json())
-                .then(detections => {
-                    const video = detections.find(v => v.id == videoId);
-                    if (video && video.coordinates && video.coordinates.length > 0) {
-                        // Clear existing markers
-                        map.eachLayer(layer => {
-                            if (layer instanceof L.Marker) {
-                                map.removeLayer(layer);
-                            }
-                        });
-    
-                        // Add markers for this video only
-                        const latlngs = [];
-                        video.coordinates.forEach(coord => {
-                            L.marker([coord.lat, coord.lng]).addTo(map)
-                                .bindPopup(`<strong>${video.title}</strong><br>Location: ${video.location}`);
-                            latlngs.push([coord.lat, coord.lng]);
-                        });
-    
-                        // Zoom to fit these markers
-                        map.fitBounds(L.latLngBounds(latlngs));
-                    }
-                })
-                .catch(error => console.error('Error loading video data:', error));
-        }
     </script>
       
 </body>

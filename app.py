@@ -65,7 +65,7 @@ def index():
 
 @app.route("/videos")
 def videos_page():
-    return render_template("videos.html", videos=get_json(VIDEOS_FILE))
+    return render_template("videos.html")
 
 @app.route("/photos")
 def photos_page():
