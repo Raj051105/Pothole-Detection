@@ -5,52 +5,124 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Videos - Pothole Detector</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/leaflet.css" />
 </head>
 <body>
-    <header>
+    <div id="map" class="full-map"></div>
+    
+    <header class="floating-header">
         <div class="container">
             <h1>Pothole Detector</h1>
             <nav>
                 <ul>
                     <li><a href="{{ url_for('index') }}">Home</a></li>
                     <li><a href="{{ url_for('videos_page') }}" class="active">My Videos</a></li>
+                    <li><a href="{{ url_for('photos_page') }}">My Photos</a></li>
                 </ul>
             </nav>
         </div>
     </header>
 
-    <main class="container">
-        <h2>My Uploaded Videos</h2>
-        
-        <div class="videos-list" id="videos-container">
-            {% if videos %}
-                {% for video in videos %}
-                <div class="video-card">
-                    <div class="video-thumbnail">
-                        <video src="{{ url_for('serve_video', filename=video['path']) }}" controls></video>
+    <main>
+        <div class="floating-videos-container">
+            <h2>My Uploaded Videos</h2>
+            
+            <div class="videos-list" id="videos-container">
+                {% if videos %}
+                    {% for video in videos %}
+                    <div class="video-card">
+                        <div class="video-thumbnail">
+                            <video src="{{ url_for('serve_video', filename=video['path']) }}" controls></video>
+                        </div>
+                        <div class="video-info">
+                            <h3>{{ video['title'] }}</h3>
+                            <p>Location: {{ video['location'] }}</p>
+                            <p>Uploaded: {{ video['uploaded'] }}</p>
+                            <p>Status: <span class="status-{{ video['status']|lower }}">{{ video['status'] }}</span></p>
+                            {% if video['status'] == 'Complete' %}
+                                <p>Potholes detected: {{ video['potholes'] }}</p>
+                            {% endif %}
+                            <a href="{{ url_for('index') }}?video={{ video['id'] }}" class="btn-secondary {% if video['status'] != 'Complete' %}disabled{% endif %}">View on Map</a>
+                        </div>
                     </div>
-                    <div class="video-info">
-                        <h3>{{ video['title'] }}</h3>
-                        <p>Location: {{ video['location'] }}</p>
-                        <p>Uploaded: {{ video['uploaded'] }}</p>
-                        <p>Status: <span class="status-{{ video['status']|lower }}">{{ video['status'] }}</span></p>
-                        {% if video['status'] == 'Complete' %}
-                            <p>Potholes detected: {{ video['potholes'] }}</p>
-                        {% endif %}
-                        <a href="{{ url_for('index') }}?video={{ video['id'] }}" class="btn-secondary {% if video['status'] != 'Complete' %}disabled{% endif %}">View on Map</a>
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <p>No videos uploaded yet. <a href="{{ url_for('index') }}">Upload your first video</a>.</p>
-            {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p class="no-content-message">No videos uploaded yet. <a href="{{ url_for('index') }}">Upload your first video</a>.</p>
+                {% endif %}
+            </div>
         </div>
     </main>
 
-    <footer>
+    <footer class="floating-footer">
         <div class="container">
             <p>&copy; 2025 Pothole Detector</p>
         </div>
     </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.3/leaflet.js"></script>
+    <script>
+        // Initialize map
+        const map = L.map('map', {
+            zoomControl: false  // We'll reposition this
+        }).setView([51.505, -0.09], 13);
+        
+        // Reposition zoom control to right bottom
+        L.control.zoom({
+            position: 'bottomright'
+        }).addTo(map);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Load all potholes on the map
+        fetch('/api/detections')
+            .then(response => response.json())
+            .then(detections => {
+                detections.forEach(d => {
+                    d.potholes.forEach(p => {
+                        L.marker([p.lat, p.lng]).addTo(map)
+                            .bindPopup(`<strong>${d.title}</strong><br>Location: ${d.location}`);
+                    });
+                });
+
+                // Zoom the map to fit all potholes
+                const allCoords = detections.flatMap(d => d.potholes.map(p => [p.lat, p.lng]));
+                if (allCoords.length > 0) {
+                    map.fitBounds(L.latLngBounds(allCoords));
+                }
+            })
+            .catch(error => console.error('Error loading detections:', error));
+
+        // Check for video parameter to focus on specific video's potholes
+        const urlParams = new URLSearchParams(window.location.search);
+        const videoId = urlParams.get('video');
+        if (videoId) {
+            fetch(`/api/videos/${videoId}`)
+                .then(response => response.json())
+                .then(video => {
+                    if (video.coordinates && video.coordinates.length > 0) {
+                        // Clear existing markers
+                        map.eachLayer(layer => {
+                            if (layer instanceof L.Marker) {
+                                map.removeLayer(layer);
+                            }
+                        });
+
+                        // Add markers for this video only
+                        const latlngs = [];
+                        video.coordinates.forEach(coord => {
+                            L.marker([coord.lat, coord.lng]).addTo(map)
+                                .bindPopup(`<strong>${video.title}</strong><br>Location: ${video.location}`);
+                            latlngs.push([coord.lat, coord.lng]);
+                        });
+
+                        // Zoom to fit these markers
+                        map.fitBounds(L.latLngBounds(latlngs));
+                    }
+                })
+                .catch(error => console.error('Error loading video data:', error));
+        }
+    </script>
 </body>
 </html>
