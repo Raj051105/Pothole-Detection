@@ -1,0 +1,4 @@
+step-1:open the kaggle and download the dataset of "pothole dataset_yolov8_format"
+step-2:after downloading extract the folder
+step-3:go to vs code and create a new folder named as "new data" and transfer the extracted files to this folder
+step-4:from the extracted file copy its path and paste it in the data.yaml
