@@ -11,8 +11,8 @@ OUTPUT_DIR = Path("detected_frames")
 N = 5  # Process every nth frame
 CONF_THRESHOLD = 0.5
 MOCK_LOCATION_RANGE = {
-    "lat": (45.48, 57.52),
-    "lng": (-10.11, 15.07)
+    "lat": (51.258, 51.72),
+    "lng": (-0.532, 0.3)
 }
 
 # === Load YOLO Model ===

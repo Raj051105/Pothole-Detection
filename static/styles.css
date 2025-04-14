@@ -229,6 +229,10 @@ textarea {
     border-radius: 4px;
 }
 
+#photo-upload-form{
+    margin-bottom: 280px;
+}
+
 .hidden {
     display: none;
 }

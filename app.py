@@ -45,6 +45,7 @@ def save_json(data, file):
 
 @app.route('/uploads/<path:filename>')
 def serve_file(filename):
+    filename = filename.replace('\\', '/')
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/uploads/<path:filename>')

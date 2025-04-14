@@ -117,68 +117,71 @@
 
         // Photo file preview and EXIF data extraction
         document.getElementById('photo-file').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Get the image preview element
+    const photoPreview = document.getElementById('photo-preview');
+    
+    // If the file exists, show preview and remove 'hidden' class
+    if (photoPreview) {
+        photoPreview.src = URL.createObjectURL(file);
+        photoPreview.classList.remove('hidden');
+    }
+    
+    // Extract EXIF data if necessary
+    EXIF.getData(file, function() {
+        const metadataContent = document.getElementById('metadata-content');
+        const noMetadataMsg = document.getElementById('no-metadata-msg');
+        
+        // Check if GPS data exists
+        if (EXIF.getTag(this, "GPSLatitude") && EXIF.getTag(this, "GPSLongitude")) {
+            const latDegrees = EXIF.getTag(this, "GPSLatitude");
+            const latRef = EXIF.getTag(this, "GPSLatitudeRef") || "N";
+            const lonDegrees = EXIF.getTag(this, "GPSLongitude");
+            const lonRef = EXIF.getTag(this, "GPSLongitudeRef") || "E";
             
-            // Show photo preview
-            const photoPreview = document.getElementById('photo-preview');
-            photoPreview.src = URL.createObjectURL(file);
-            photoPreview.classList.remove('hidden');
+            const latDecimal = convertDMSToDD(latDegrees[0], latDegrees[1], latDegrees[2], latRef);
+            const lonDecimal = convertDMSToDD(lonDegrees[0], lonDegrees[1], lonDegrees[2], lonRef);
             
-            // Extract EXIF data
-            EXIF.getData(file, function() {
-                const metadataContent = document.getElementById('metadata-content');
-                const noMetadataMsg = document.getElementById('no-metadata-msg');
-                
-                // Check if GPS data exists
-                if (EXIF.getTag(this, "GPSLatitude") && EXIF.getTag(this, "GPSLongitude")) {
-                    // Convert GPS coordinates
-                    const latDegrees = EXIF.getTag(this, "GPSLatitude");
-                    const latRef = EXIF.getTag(this, "GPSLatitudeRef") || "N";
-                    const lonDegrees = EXIF.getTag(this, "GPSLongitude");
-                    const lonRef = EXIF.getTag(this, "GPSLongitudeRef") || "E";
-                    
-                    const latDecimal = convertDMSToDD(latDegrees[0], latDegrees[1], latDegrees[2], latRef);
-                    const lonDecimal = convertDMSToDD(lonDegrees[0], lonDegrees[1], lonDegrees[2], lonRef);
-                    
-                    photoCoordinates = { lat: latDecimal, lng: lonDecimal };
-                    
-                    // Display coordinates
-                    document.getElementById('gps-coords').textContent = `${latDecimal.toFixed(6)}, ${lonDecimal.toFixed(6)}`;
-                    
-                    // Add marker to map
-                    clearMarkers();
-                    
-                    const marker = L.marker([latDecimal, lonDecimal]).addTo(map)
-                        .bindPopup("New photo location");
-                    map.setView([latDecimal, lonDecimal], 15);
-                } else {
-                    document.getElementById('gps-coords').textContent = "Not available";
-                    photoCoordinates = null;
-                }
-                
-                // Display date if available
-                const dateTaken = EXIF.getTag(this, "DateTimeOriginal");
-                if (dateTaken) {
-                    document.getElementById('date-taken').textContent = dateTaken;
-                } else {
-                    document.getElementById('date-taken').textContent = "Not available";
-                }
-                
-                // Display device info if available
-                const make = EXIF.getTag(this, "Make");
-                const model = EXIF.getTag(this, "Model");
-                if (make && model) {
-                    document.getElementById('device-info').textContent = `${make} ${model}`;
-                } else {
-                    document.getElementById('device-info').textContent = "Not available";
-                }
-                
-                // Show metadata section
-                noMetadataMsg.style.display = 'none';
-                metadataContent.classList.remove('hidden');
-            });
-        });
+            photoCoordinates = { lat: latDecimal, lng: lonDecimal };
+            
+            // Display coordinates
+            document.getElementById('gps-coords').textContent = `${latDecimal.toFixed(6)}, ${lonDecimal.toFixed(6)}`;
+            
+            // Add marker to map
+            clearMarkers();
+            
+            const marker = L.marker([latDecimal, lonDecimal]).addTo(map)
+                .bindPopup("New photo location");
+            map.setView([latDecimal, lonDecimal], 15);
+        } else {
+            document.getElementById('gps-coords').textContent = "Not available";
+            photoCoordinates = null;
+        }
+        
+        // Display other EXIF metadata (Date Taken, Device)
+        const dateTaken = EXIF.getTag(this, "DateTimeOriginal");
+        if (dateTaken) {
+            document.getElementById('date-taken').textContent = dateTaken;
+        } else {
+            document.getElementById('date-taken').textContent = "Not available";
+        }
+        
+        const make = EXIF.getTag(this, "Make");
+        const model = EXIF.getTag(this, "Model");
+        if (make && model) {
+            document.getElementById('device-info').textContent = `${make} ${model}`;
+        } else {
+            document.getElementById('device-info').textContent = "Not available";
+        }
+        
+        // Show metadata section
+        noMetadataMsg.style.display = 'none';
+        metadataContent.classList.remove('hidden');
+    });
+});
+
         
         // Convert GPS coordinates from degrees, minutes, seconds to decimal degrees
         function convertDMSToDD(degrees, minutes, seconds, direction) {
@@ -248,6 +251,15 @@
                 .then(response => response.json())
                 .then(potholes => {
                     clearMarkers();
+                    
+                    potholes.forEach(pothole => {
+                        if (pothole.lat && pothole.lng) {
+                            const marker = L.marker([pothole.lat, pothole.lng]).addTo(map)
+                                .bindPopup(`<strong>${pothole.title}</strong><br>${pothole.location}`);
+                        } else {
+                            console.error('Missing coordinates for pothole:', pothole);
+                        }
+                    });
                     
                     const latlngs = [];
                     potholes.forEach(pothole => {
