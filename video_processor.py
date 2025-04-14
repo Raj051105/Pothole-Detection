@@ -9,7 +9,7 @@ from ultralytics import YOLO
 UPLOADS_DIR = Path("uploads")
 OUTPUT_DIR = Path("detected_frames")
 N = 5  # Process every nth frame
-CONF_THRESHOLD = 0.3
+CONF_THRESHOLD = 0.5
 MOCK_LOCATION_RANGE = {
     "lat": (45.48, 57.52),
     "lng": (-10.11, 15.07)
